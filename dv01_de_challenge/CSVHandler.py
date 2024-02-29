@@ -49,5 +49,5 @@ class FileHandler:
             self.csv_handler.write_csv(data, headers, self.output_directory, file_name)
 
 csv_handler = CSVHandler()
-file_handler = FileHandler('/Users/iswaryamogalapalli/PycharmProjects/dv01_de_challenge/input_csv_without_header', '/Users/iswaryamogalapalli/PycharmProjects/dv01_de_challenge/output', csv_handler)
+file_handler = FileHandler('/Users/iswaryamogalapalli/PycharmProjects/dv01/input_csv/', '/Users/iswaryamogalapalli/PycharmProjects/dv01/output_path', csv_handler)
 file_handler.process_files()
