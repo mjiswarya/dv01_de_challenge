@@ -56,7 +56,7 @@ class TestCSVHandler(unittest.TestCase):
         output_path = '/dv01_de_challenge/output_path/LoanStats_securev1_2018Q4.csv'
 
         with patch('builtins.open', mock_open()) as mock_csv_file:
-            csv_handler = CSVHandler()
+            csv_handler = dv01_de_challenge.CSVHandler()
             csv_handler.write_csv(data, headers, output_path)
 
         mock_csv_file.assert_called_once_with(output_path, 'w', newline='')
