@@ -119,6 +119,12 @@ class FileHandler:
 
     def write_csv(self, data, headers, output_directory, file_name):
         csv_output_path = os.path.join(output_directory, file_name)
+
+        # Check if the file exists
+        if os.path.isfile(csv_output_path):
+            # If the file exists, delete it
+            os.remove(csv_output_path)
+
         with open(csv_output_path, 'w', newline='') as csv_file:
             writer = csv.DictWriter(csv_file, fieldnames=headers)
             writer.writeheader()
@@ -127,6 +133,12 @@ class FileHandler:
 
     def write_parquet(self, data, headers, output_directory, file_name):
         parquet_output_path = os.path.join(output_directory, os.path.splitext(file_name)[0] + '.parquet')
+
+        # Check if the file exists
+        if os.path.isfile(parquet_output_path):
+            # If the file exists, delete it
+            os.remove(parquet_output_path)
+
         df = pd.DataFrame(data, columns=headers)
         df.to_parquet(parquet_output_path, index=False)
         print(f"Parquet file written: {parquet_output_path}")
