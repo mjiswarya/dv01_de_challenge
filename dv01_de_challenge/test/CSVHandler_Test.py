@@ -4,61 +4,66 @@ import csv
 import json
 import itertools
 from unittest.mock import patch, mock_open
-from dv01_de_challenge import CSVHandler
-
+from dv01_de_challenge import CSVHandler as ch
 
 class TestCSVHandler(unittest.TestCase):
 
     def test_read_csv_with_header(self):
-        file_path = '/input_csv/LoanStats_securev1_2018Q4.csv'  # Path to a CSV file with a header
-        expected_headers = list(
-            csv.reader(open('/input_csv/LoanStats_securev1_2018Q4.csv')))[
-            0]  # Read headers from actual file
+        # Sample CSV data with header
+        csv_content = """id,member_id,loan_amnt
+        100001,12345,10000
+        100002,54321,20000"""
+
+        with patch("builtins.open", mock_open(read_data=csv_content)):
+            csv_handler = ch.CSVHandler()
+            headers, data = csv_handler.read_csv("test_data.csv")
+
+        # Expected output
+        expected_headers = ["id", "member_id", "loan_amnt"]
         expected_data = [
-            {'column1': 'value1', 'column2': 'value2'},
-            {'column1': 'value3', 'column2': 'value4'}
-        ]  # Expected data
-
-        mocked_data = csv.writer(None, delimiter=',').writerows(expected_data)
-        mocked_csv_content = '\n'.join(mocked_data)
-
-        with patch('builtins.open', mock_open(read_data=mocked_csv_content)):
-            csv_handler = CSVHandler()
-            headers, data = csv_handler.read_csv(file_path)
+            {"id": "100001", "member_id": "12345", "loan_amnt": "10000"},
+            {"id": "100002", "member_id": "54321", "loan_amnt": "20000"},
+        ]
 
         self.assertEqual(headers, expected_headers)
         self.assertEqual(data, expected_data)
 
     def test_read_csv_without_header_and_schema(self):
-        file_path = '/input_csv_without_header/LoanStats_securev1_2018Q4.csv'  # Path to a CSV file without a header
-        schema_file_path = '/input_csv_without_header/LoanStats_securev1_2018Q4.json'  # Path to the corresponding JSON schema file
-        expected_headers = ['columnA', 'columnB']  # Expected headers from the schema
+        # Sample CSV data without header
+        csv_content = """value1,value2
+        value3,value4"""
+
+        with patch("builtins.open", mock_open(read_data=csv_content)):
+            with patch("json.load", return_value={"header_row": ["columnA", "columnB"]}):
+                csv_handler = ch.CSVHandler()
+                headers, data = csv_handler.read_csv("test_data.csv")
+
+        # Expected output
+        expected_headers = ["columnA", "columnB"]
         expected_data = [
-            {'columnA': 'value5', 'columnB': 'value6'},
-            {'columnA': 'value7', 'columnB': 'value8'}
-        ]  # Expected data
+            {"columnA": "value1", "columnB": "value2"},
+            {"columnA": "value3", "columnB": "value4"},
+        ]
 
-        with patch('builtins.open', mock_open(read_data=csv.reader(expected_data, delimiter=','))) as mock_csv_file:
-            with patch('json.load', return_value={'header_row': expected_headers}):
-                csv_handler = CSVHandler()
-                headers, data = csv_handler.read_csv(file_path)
-
-        mock_csv_file.assert_called_once_with(file_path, 'r')
         self.assertEqual(headers, expected_headers)
         self.assertEqual(data, expected_data)
 
     def test_write_csv(self):
+        # Sample data and headers
         data = [
-            {'column1': 'valueX', 'column2': 'valueY'},
-            {'column1': 'valueZ', 'column2': 'value10'}
+            {"column1": "valueX", "column2": "valueY"},
+            {"column1": "valueZ", "column2": "value10"},
         ]
-        headers = ['column1', 'column2']
-        output_path = '/dv01_de_challenge/output_path/LoanStats_securev1_2018Q4.csv'
+        headers = ["column1", "column2"]
 
-        with patch('builtins.open', mock_open()) as mock_csv_file:
-            csv_handler = dv01_de_challenge.CSVHandler()
-            csv_handler.write_csv(data, headers, output_path)
+        # Mocking file write
+        with patch("builtins.open", mock_open()) as mock_csv_file:
+            csv_handler = ch.CSVHandler()
+            csv_handler.write_csv(data, headers, "output.csv")
 
-        mock_csv_file.assert_called_once_with(output_path, 'w', newline='')
-        expected_csv_content = 'column1,column2\nvalueX,valueY\nvalueZ,value10\n'
+        # Expected CSV content
+        expected_csv_content = "column1,column2\nvalueX,valueY\nvalueZ,value10\n"
         mock_csv_file().write.assert_called_once_with(expected_csv_content)
+
+if __name__ == "__main__":
+    unittest.main()

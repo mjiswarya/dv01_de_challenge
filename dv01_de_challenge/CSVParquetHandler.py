@@ -4,26 +4,22 @@ import csv
 import pandas as pd
 import datetime
 
+
 class CSVParquetHandler:
-    def read_csv(self, file_path, standardize_dates=True):
+    def read_csv(self, file_path, has_header_status=True, standardize_dates=True):
         """
         Reads a CSV file and returns the headers and data.
 
         Args:
             file_path (str): Path to the CSV file.
+            header (list, optional): List of headers. If None, headers are read from the file or JSON schema.
             standardize_dates (bool, optional): Whether to standardize date fields to ISO format. Defaults to True.
 
         Returns:
             tuple: A tuple containing headers (list) and data (list of dictionaries).
         """
         with open(file_path, 'r') as csv_file:
-            try:
-                has_header = csv.Sniffer().has_header(csv_file.read(10024))
-            except csv.Error:
-                print(f"Could not sniff header for file {file_path}. Defaulting to no header.")
-                has_header = False
-            csv_file.seek(0)
-            if has_header:
+            if has_header_status:
                 data = list(csv.DictReader(csv_file))
                 headers = data[0].keys()
             else:
@@ -49,11 +45,12 @@ class CSVParquetHandler:
             if standardize_dates:
                 for row in data:
                     for header in headers:
-                        if 'date' in header.lower():
+                        if header and 'date' in header.lower():
+                            date_index = list(headers).index(header)  # Get the column index of the date header
                             try:
-                                original_date = row[header]
+                                original_date = row[date_index]  # Access date by column index
                                 standardized_date = self.standardize_date(original_date)
-                                row[header] = standardized_date
+                                row[date_index] = standardized_date  # Update date at the correct index
                             except KeyError:
                                 pass
 
@@ -87,19 +84,18 @@ class FileHandler:
         self.output_directory = output_directory
         self.csv_handler = csv_handler
 
-    def process_files(self, output_format='csv'):
+    def process_files(self, output_format='csv', header_exists=True):
         """
         Process CSV files and write data to the specified output format.
 
         Args:
             output_format (str, optional): Output format ('csv' or 'parquet'). Defaults to 'csv'.
         """
-        file_paths = [os.path.join(self.input_directory, file) for file in os.listdir(self.input_directory) if file.endswith('.csv')]
+        file_paths = [os.path.join(self.input_directory, file) for file in os.listdir(self.input_directory) if
+                      file.endswith('.csv')]
         for file_path in file_paths:
-            headers, data = self.csv_handler.read_csv(file_path, standardize_dates=True)  # Optionally standardize dates
-            # Process data here (you can customize this part)
+            headers, data = self.csv_handler.read_csv(file_path, header_exists)
 
-            # Example: Print the headers and first few rows of data
             print(f"File: {file_path}")
             print("Headers:", headers)
             for row in data[:5]:
@@ -144,9 +140,30 @@ class FileHandler:
         print(f"Parquet file written: {parquet_output_path}")
 
 
-# Example usage
-input_dir = "/Users/iswaryamogalapalli/PycharmProjects/dv01/input_csv_without_header/"
-output_dir = "/Users/iswaryamogalapalli/PycharmProjects/dv01/output_path"
-csv_reader = CSVParquetHandler()  # Initialize your CSVReader instance
-file_handler = FileHandler(input_dir, output_dir, csv_reader)
-file_handler.process_files(output_format='csv|parquet')  # Specify 'csv' or 'parquet'
+def main(header_exists, file_format):
+
+    if header_exists:
+        input_dir = "/Users/iswaryamogalapalli/PycharmProjects/dv01/input_csv/"
+    else:
+        input_dir = "/Users/iswaryamogalapalli/PycharmProjects/dv01/input_csv_without_header/"
+
+
+    output_dir = "/Users/iswaryamogalapalli/PycharmProjects/dv01/output_path"
+
+    csv_reader = CSVParquetHandler()
+    file_handler = FileHandler(input_dir, output_dir, csv_reader)
+
+
+    if file_format == "csv":
+        file_handler.process_files(output_format='csv', header_exists=header_exists)
+    elif file_format == "parquet":
+        file_handler.process_files(output_format='parquet', header_exists=header_exists)
+    elif file_format == "csv|parquet":
+        file_handler.process_files(output_format='csv|parquet', header_exists=header_exists)
+
+
+if __name__ == "__main__":
+    header_exists = False
+    file_format = 'csv|parquet'
+
+    main(header_exists, file_format)
